@@ -30,3 +30,10 @@
 *.exe
 *.out
 *.app
+Socket-Confetti_Client/Debug/
+Socket-Confetti_Server/Debug/
+Socket-Confetti_Client/ConfettiClient/Debug/
+Socket-Confetti_Client/Socket-Confetti/Debug/
+Socket-Confetti_Server/ConfettiServer/Debug/
+
+Socket-Confetti_Server/Socket-Confetti/Debug/
