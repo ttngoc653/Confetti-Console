@@ -7,6 +7,7 @@
 #include<stdlib.h>
 #include<vector>
 #include<thread>
+#include<fstream>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -24,12 +25,25 @@ struct InfoUser
 	int socaudung;
 };
 
+struct Question
+{
+	char question[254];
+	char answerfirst[254];
+	char answersecond[254];
+	char answerthirs[254];
+	char answerfouth[254];
+	char answertrue;
+};
+
 CSocket server;
-vector<CSocket> clients;
+CSocket * clients;
 vector<InfoUser *> users;
-int count_user = 0, count_question = 0;
+vector<Question *> questions;
+int count_user = 0, count_question = 0, users_size_current = 0;
 int temp = 1;
 
+char msg[255];
+int length_msg = 0;
 /*source: https://stackoverflow.com/questions/49335001/get-local-ip-address-in-c*/
 void getIp()
 {
@@ -77,7 +91,7 @@ void getIp()
 boolean checkEqualUser(char * username) {
 	for (int i = 0; i < users.size(); i++)
 	{
-		if (strcmp(users.at(i)->name,username)==0)
+		if (strcmp(users.at(i)->name, username) == 0)
 		{
 			return true;
 		}
@@ -85,25 +99,91 @@ boolean checkEqualUser(char * username) {
 	return false;
 }
 
+void readQuestionFromFile()
+{
+	fstream in;
+	in.open("data.txt");
+	cout << "Doc file" << endl;
+	if (!in.is_open())
+		cout << "FILE KHONG TON TAI." << endl;
+	while (!in.eof())
+	{
+		Question *p = (Question *)malloc(sizeof(Question));
+		char temp[256];
+		in.getline(p->question, 256, '\n');
+		cout << p->question << endl;
+		in.getline(p->answerfirst, 256, '\n');
+		cout << p->question << endl;
+		in.getline(p->answersecond, 256, '\n');
+		cout << p->answersecond << endl;
+		in.getline(p->answerthirs, 256, '\n');
+		cout << p->answerthirs << endl;
+		in.getline(p->answerfouth, 256, '\n');
+		cout << p->answerfouth << endl;
+		in.getline(temp, 256, '\n');
+		cout << temp << endl;
+		p->answertrue = temp[0];
+		questions.push_back(p);
+		if (in.eof())
+			break;
+	}
+	in.close();
+}
+
+
 void checkConnect() {
 	while (temp != 500)
 	{
-		for (int i = 0; i < clients.size(); i++)
+		for (int i = 0; i < count_user; i++)
 		{
-			if (clients.at(i)==NULL)
+			if (clients[i] == NULL)
 			{
-				cout << "Client " << i << "disconnected!!!" << endl;
-				//clients.erase(clients.begin() + i);
+				if (server.Accept(clients[i])) {
+					clients[i].Receive(&length_msg, sizeof(int), 0);
+					clients[i].Receive(msg, length_msg, 0);
+
+					msg[length_msg] = '\0';
+
+					cout << "Da nhan ten: " << msg;
+
+					temp = 1;
+					if (!checkEqualUser(msg))
+					{
+						cout << endl;
+						cout << "Nguoi choi thu " << i << " da ket noi" << endl;
+
+						clients[i];
+
+						InfoUser *info = (InfoUser *)malloc(sizeof(InfoUser));
+
+						info->name = (char *)malloc(length_msg * sizeof(int));
+
+						strcpy(info->name, msg);
+						info->socaudung = 0;
+						users.push_back(info);
+
+						clients[i].Send(&temp, sizeof(int), 0);
+						clients[i].Send("1", 1, 0);
+						users_size_current++;
+						i++;
+					}
+					else
+					{
+						cout << " bi trung ten" << endl;
+
+						clients[i].Send(&temp, sizeof(int), 0);
+						clients[i].Send("0", 1, 0);
+
+						clients[i].Close();
+					}
+				}
 			}
 		}
 	}
 }
 
 void program(){
-	
-	char msg[255];
-	int length_msg = 0;
-
+	readQuestionFromFile();
 
 	AfxSocketInit(NULL);
 
@@ -116,27 +196,29 @@ void program(){
 	cout << "Nhap so nguoi choi: " << endl;
 	cin >> count_user;
 
+	clients = (CSocket *)malloc(count_user * sizeof(CSocket));
+
 	cout << "Waiting for client" << endl;
 	for (int i = 0; i < count_user;)
 	{
-		CSocket clientindex;
-		if (server.Accept(clientindex)) {
+		if (server.Accept(clients[i])) {
 			cout << "Co ket noi toi." << endl;
 		}
 
-		clientindex.Receive(&length_msg, sizeof(int), 0);
-		clientindex.Receive(msg, length_msg, 0);
+		clients[i].Receive(&length_msg, sizeof(int), 0);
+		clients[i].Receive(msg, length_msg, 0);
 
 		msg[length_msg] = '\0';
 
 		cout << "Da nhan ten: " << msg;
-
+		
+		temp = 1;
 		if (!checkEqualUser(msg))
 		{
 			cout << endl;
 			cout << "Nguoi choi thu " << i << " da ket noi" << endl;
 
-			//clients.push_back(clientindex);
+			clients[i];
 			
 			InfoUser *info=(InfoUser *)malloc(sizeof(InfoUser));
 
@@ -145,18 +227,22 @@ void program(){
 			strcpy(info->name, msg);
 			info->socaudung = 0;
 			users.push_back(info);
-			
-			clientindex.Send(&temp, sizeof(int), 0);
-			clientindex.Send("1", 1, 0);
 
+			sprintf(msg, "%d", count_question);
+			temp = strlen(msg);
+			clients[i].Send(&temp, sizeof(int), 0);
+			clients[i].Send(msg, 1, 0);
+			users_size_current++;
 			i++;
 		}
 		else
 		{
 			cout << " bi trung ten" << endl;
 
-			clientindex.Send(&temp, sizeof(int), 0);
-			clientindex.Send("0", 1, 0);
+			clients[i].Send(&temp, sizeof(int), 0);
+			clients[i].Send("0", 1, 0);
+
+			clients[i].Close();
 		}
 	}
 
@@ -164,22 +250,89 @@ void program(){
 
 	for (int i = 0; i < count_question; i++)
 	{
+		int rand_question = rand() % questions.size();
+		temp = sizeof(Question);
+
+		// gui cau hoi cho tat ca client con hoat dong
 		for (int i = 0; i < count_user; i++)
 		{
+			if (clients[i]!=NULL)
+			{
+				clients[i].Send(&temp, sizeof(int));
+				clients[i].Send(questions.at(rand_question), temp);
+			}
+		}
 
+		// nhan cau tra loi cua tat ca client
+		for (int i = 0; i < count_user; i++)
+		{
+			if (clients[i]!=NULL)
+			{
+				clients[i].Receive(&length_msg, sizeof(int));
+				clients[i].Receive(msg, length_msg);
+				msg[length_msg] = '\0';
+
+				if (strlwr(msg)[0] == questions.at(i)->answertrue)
+				{
+					users[i]->socaudung++;
+				}
+			}
+		}
+	}
+
+	// tim so cau tra loi cao nhat cung nhu so nguoi choi tra loi coan hat
+	int maxpoint = 0, count_user_max_point = 0;
+	for (int i = 0; i < users.size(); i++)
+	{
+		if (users[i]->socaudung>users[maxpoint]->socaudung)
+		{
+			maxpoint = i;
+			count_user_max_point = 1;
+		}
+		else if (users[i]->socaudung == users[maxpoint]->socaudung)
+		{
+			count_user_max_point++;
+		}
+	}
+
+	// gui ket qua choi cho nguoi dung
+	for (int i = 0; i < count_user; i++)
+	{
+		if (clients[i]!=NULL)
+		{
+			// gui so nguoi choi co diem cao nhat
+			sprintf(msg, "%d", count_user_max_point);
+			length_msg=strlen(msg);
+			clients[i].Send(&length_msg, sizeof(int));
+			clients[i].Send(msg, length_msg);
+
+			// gui diem cao nhat
+			sprintf(msg, "%d", maxpoint);
+			length_msg = strlen(msg);
+			clients[i].Send(&length_msg, sizeof(int));
+			clients[i].Send(msg, length_msg);
+
+			// gui danh sach ten nguoi choi co diem cao nhat
+			for (int i = 0; i < users.size(); i++)
+			{
+				if (users.at(i)->socaudung == users.at(maxpoint)->socaudung)
+				{
+					length_msg = strlen(users[i]->name);
+					clients[i].Send(&length_msg, sizeof(int));
+					clients[i].Send(users[i]->name, length_msg);
+				}
+			}
 		}
 	}
 
 	temp = 500;
 	threadCheck.join();
 	
-	while(clients.size()!=0)
+	for (int i = 0; i < users_size_current; i++)
 	{
-		clients.at(clients.size()-1).Close();
-		clients.pop_back();
+		clients[i].Close();
 	}
-
-
+	free(clients);
 	server.Close();
 
 }
