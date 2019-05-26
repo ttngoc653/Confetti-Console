@@ -109,7 +109,7 @@ void program() {
 
 	client.Receive(&length_msg, sizeof(int));
 
-	cout << "Ban da tra loi " << ((answer != msg[0]) ? "sai" : "dung") << endl;
+	cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
 	
 	client.Receive(msg, length_msg);
 

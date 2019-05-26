@@ -99,14 +99,14 @@ boolean checkEqualUser(char * username) {
 	return false;
 }
 
-void readQuestionFromFile()
+bool readQuestionFromFile()
 {
 	fstream in;
-	in.open("data1.txt");
+	in.open("data.txt");
 	cout << "Doc file" << endl;
 	if (!in.is_open()) {
 		cout << " TAP TIN CHUA DU LIEU KHONG TON TAI." << endl;
-		return;
+		return false;
 	}
 	while (!in.eof() && in.is_open())
 	{
@@ -130,6 +130,7 @@ void readQuestionFromFile()
 			break;
 	}
 	in.close();
+	return true;
 }
 
 
@@ -185,7 +186,10 @@ void checkConnect() {
 }
 
 void program(){
-	readQuestionFromFile();
+	if (!readQuestionFromFile()) {
+		cout << "Ket thuc tro choi." << endl;
+		return;
+	}
 
 	AfxSocketInit(NULL);
 
@@ -323,6 +327,7 @@ void program(){
 			clients[i].Send(msg, length_msg);
 
 			// gui danh sach ten nguoi choi co diem cao nhat
+
 			for (int i = 0; i < users.size(); i++)
 			{
 				if (users.at(i)->socaudung == users.at(maxpoint)->socaudung)
