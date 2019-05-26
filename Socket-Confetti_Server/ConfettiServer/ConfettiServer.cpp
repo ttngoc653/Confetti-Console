@@ -205,9 +205,9 @@ void program(){
 			cout << "Co ket noi toi." << endl;
 		}
 
+		// nhan ten nguoi choi
 		clients[i].Receive(&length_msg, sizeof(int), 0);
 		clients[i].Receive(msg, length_msg, 0);
-
 		msg[length_msg] = '\0';
 
 		cout << "Da nhan ten: " << msg;
@@ -227,7 +227,8 @@ void program(){
 			strcpy(info->name, msg);
 			info->socaudung = 0;
 			users.push_back(info);
-
+			
+			// gui so luong cau hoi
 			sprintf(msg, "%d", count_question);
 			temp = strlen(msg);
 			clients[i].Send(&temp, sizeof(int), 0);
@@ -238,9 +239,11 @@ void program(){
 		else
 		{
 			cout << " bi trung ten" << endl;
+			temp = 2;
 
+			// gui ket qua trung ve (-1)
 			clients[i].Send(&temp, sizeof(int), 0);
-			clients[i].Send("0", 1, 0);
+			clients[i].Send("-1", 1, 0);
 
 			clients[i].Close();
 		}
@@ -258,6 +261,7 @@ void program(){
 		{
 			if (clients[i]!=NULL)
 			{
+				// gui cau hoi cho nguoi choi
 				clients[i].Send(&temp, sizeof(int));
 				clients[i].Send(questions.at(rand_question), temp);
 			}
@@ -268,6 +272,7 @@ void program(){
 		{
 			if (clients[i]!=NULL)
 			{
+				// nhan cau tra loi cua nguoi choi
 				clients[i].Receive(&length_msg, sizeof(int));
 				clients[i].Receive(msg, length_msg);
 				msg[length_msg] = '\0';
