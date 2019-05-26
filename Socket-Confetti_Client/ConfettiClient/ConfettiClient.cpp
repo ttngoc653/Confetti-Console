@@ -30,13 +30,62 @@ using namespace std;
 
 CSocket client;
 char str_ip[16];
+Question * p; char reply[] = "_____", answer;
+char msg[255];
+int length_msg = 0, number_question = 0;
+int question_current = 0;
+bool replied = false;
+
+void xuatCauHoi() {
+	for (question_current = 0; question_current < number_question; question_current++)
+	{
+		p = (Question *)malloc(sizeof(Question));
+		client.Receive(&length_msg, sizeof(int), 0);
+
+		if (question_current != 0 && replied)
+			cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
+
+		client.Receive(p, length_msg, 0);
+
+		cout << "Cau hoi thu " << question_current + 1 << ": " << endl;
+		cout << p->question << endl;
+		cout << "\ta. " << p->answerfirst << endl;
+		cout << "\tb. " << p->answersecond << endl;
+		cout << "\tc. " << p->answerthirs << endl;
+		cout << "\td. " << p->answerfouth << endl;
+		cout << "Bat dau tinh gio." << endl;
+		cout << "Cau tra loi cua ban (a, b, c hoac d): ";
+
+		replied = false;
+
+		Sleep(60000);
+
+		if (!replied)
+		{
+			cout << endl << "Het thoi gian tra loi." << endl;
+			strcpy(reply, "e");
+		}
+
+		answer = p->answertrue;
+
+		length_msg = strlen(reply);
+		client.Send(&length_msg, sizeof(int), 0);
+		client.Send(reply, length_msg, 0);
+	}
+}
+
+void guiCauTraLoi() {
+	while (number_question>question_current)
+	{
+		cin >> reply;
+		replied = true;
+		cout << "Cho dap an cua nguoi cung choi!" << endl;
+	}
+}
 
 void program() {
 	AfxSocketInit(NULL);
 	
-	char msg[255];
-	int length_msg = 0, number_question = 0;
-
 	cout << "Please input IP address of server: ";
 	cin.getline(str_ip,254);
 
@@ -78,35 +127,10 @@ void program() {
 	}
 
 	// nhan cau hoi va tra loi cau hoi
-	Question * p; char reply[] = "_____", answer;
-	for (int i = 0; i < number_question; i++)
-	{
-		p = (Question *)malloc(sizeof(Question));
-		client.Receive(&length_msg, sizeof(int), 0);
-
-		if (i != 0)
-			cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl; 
-		
-		client.Receive(p, length_msg, 0);
-
-
-		cout << "Cau hoi thu " << i+1 << ": " << endl;
-		cout << p->question << endl;
-		cout << "\ta. " << p->answerfirst << endl;
-		cout << "\tb. " << p->answersecond << endl;
-		cout << "\tc. " << p->answerthirs << endl;
-		cout << "\td. " << p->answerfouth << endl;
-		cout << "Bat dau tinh gio." << endl;
-		cout << "Cau tra loi cua ban (a, b, c hoac d): ";
-		cin >> reply;
-
-		answer = p->answertrue;
-		
-		length_msg = strlen(reply);
-		client.Send(&length_msg, sizeof(int), 0);
-		client.Send(reply, length_msg, 0);
-	}
-
+	thread showQuestion(xuatCauHoi);
+	thread inputReply(guiCauTraLoi);
+	showQuestion.join();
+	
 	client.Receive(&length_msg, sizeof(int));
 
 	cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
@@ -120,7 +144,7 @@ void program() {
 	{
 		client.Receive(&length_msg, sizeof(int));
 		client.Receive(msg, length_msg);
-
+		
 		client.Receive(&length_msg, sizeof(int));
 		client.Receive(msg, length_msg);
 		msg[length_msg] = '\0';

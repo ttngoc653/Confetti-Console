@@ -192,7 +192,7 @@ void program(){
 	}
 
 	AfxSocketInit(NULL);
-
+	srand(time(NULL));
 	getIp();
 
 	server.Create(1760);
@@ -285,6 +285,8 @@ void program(){
 				clients[i].Receive(&length_msg, sizeof(int));
 				clients[i].Receive(msg, length_msg);
 				msg[length_msg] = '\0';
+
+				cout << "Da nhan tra loi cua client " << i + 1 << " la: " << msg << endl;
 
 				if (msg[0] == questions.at(rand_question)->answertrue)
 				{
