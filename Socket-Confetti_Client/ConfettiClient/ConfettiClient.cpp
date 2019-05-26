@@ -12,6 +12,15 @@
 #define new DEBUG_NEW
 #endif
 
+struct Question
+{
+	char question[254];
+	char answerfirst[254];
+	char answersecond[254];
+	char answerthirs[254];
+	char answerfouth[254];
+	char answertrue;
+};
 
 // The one and only application object
 
@@ -26,7 +35,7 @@ void program() {
 	AfxSocketInit(NULL);
 	
 	char msg[255];
-	int length_msg = 0;
+	int length_msg = 0, number_question = 0;
 
 	cout << "Please input IP address of server: ";
 	cin.getline(str_ip,254);
@@ -38,21 +47,26 @@ void program() {
 
 		client.Connect(CA2W(str_ip), 1760);
 
+		// nhap ten nguoi choi
 		cin.getline(msg, 254);
 
 		length_msg = strlen(msg);
-
+		
+		// gui ten nguoi dung
 		client.Send(&length_msg, sizeof(int), 0);
 		client.Send(msg, length_msg, 0);
 
+		// nhan so luong cau hoi hoac -1 neu bi trung
 		client.Receive(&length_msg, sizeof(int), 0);
 		client.Receive(msg, length_msg, 0);
 		msg[length_msg] = '\0';
 
 		cout << "Ket qua trung: " << msg << endl;
 
-		if (strcmp("1", msg) == 0)
+		if (!strcmp("-1", msg) == 0)
 		{
+			number_question = atoi(msg);
+			cout << "Ban can tra loi " << number_question << " cau hoi." << endl;
 			cout << "Hien tai dang cho du nguoi moi choi duoc nhe." << endl;
 			break;
 		}
@@ -62,29 +76,63 @@ void program() {
 			client.Close();
 		}
 	}
-	while (true)
-	{
 
+	// nhan cau hoi va tra loi cau hoi
+	Question * p; char reply[] = "_____", answer;
+	for (int i = 0; i < number_question; i++)
+	{
+		p = (Question *)malloc(sizeof(Question));
+		client.Receive(&length_msg, sizeof(int), 0);
+
+		if (i != 0)
+			cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl; 
+		
+		client.Receive(p, length_msg, 0);
+
+
+		cout << "Cau hoi thu " << i+1 << ": " << endl;
+		cout << p->question << endl;
+		cout << "\ta. " << p->answerfirst << endl;
+		cout << "\tb. " << p->answersecond << endl;
+		cout << "\tc. " << p->answerthirs << endl;
+		cout << "\td. " << p->answerfouth << endl;
+		cout << "Bat dau tinh gio." << endl;
+		cout << "Cau tra loi cua ban (a, b, c hoac d): ";
+		cin >> reply;
+
+		answer = p->answertrue;
+		
+		length_msg = strlen(reply);
+		client.Send(&length_msg, sizeof(int), 0);
+		client.Send(reply, length_msg, 0);
 	}
 
-	client.Close();
-	/*while (true)
+	client.Receive(&length_msg, sizeof(int));
+
+	cout << "Ban da tra loi " << ((answer != msg[0]) ? "sai" : "dung") << endl;
+	
+	client.Receive(msg, length_msg);
+
+	int count_user_answer_most_true = atoi(msg);
+
+	cout << "Co " << msg << " nguoi choi tra loi dung nhieu cau nhat:" << endl;
+	for (int i = 0; i < count_user_answer_most_true; i++)
 	{
-		cout << "Input message: ";
-		cin.getline(msg, 254);
-		length_msg = strlen(msg);
-		client.Send(&length_msg, sizeof(int), 0);
-		client.Send(msg, length_msg, 0);
+		client.Receive(&length_msg, sizeof(int));
+		client.Receive(msg, length_msg);
 
-		client.Receive(&length_msg, sizeof(int), 0);
-		client.Receive(msg, length_msg, 0);
-
+		client.Receive(&length_msg, sizeof(int));
+		client.Receive(msg, length_msg);
 		msg[length_msg] = '\0';
-		cout << "Receive: " << msg << endl;
-	//	delete msg;
-	}*/
+
+		cout << "\t" << msg << endl;
+	}
+
+	cout << "Ket thuc tro choi" << endl;
 
 	client.Close();
+
+	cin.getline(msg, 254);
 }
 
 int main()

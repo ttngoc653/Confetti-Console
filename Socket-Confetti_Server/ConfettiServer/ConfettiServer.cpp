@@ -102,18 +102,20 @@ boolean checkEqualUser(char * username) {
 void readQuestionFromFile()
 {
 	fstream in;
-	in.open("data.txt");
+	in.open("data1.txt");
 	cout << "Doc file" << endl;
-	if (!in.is_open())
-		cout << "FILE KHONG TON TAI." << endl;
-	while (!in.eof())
+	if (!in.is_open()) {
+		cout << " TAP TIN CHUA DU LIEU KHONG TON TAI." << endl;
+		return;
+	}
+	while (!in.eof() && in.is_open())
 	{
 		Question *p = (Question *)malloc(sizeof(Question));
 		char temp[256];
 		in.getline(p->question, 256, '\n');
 		cout << p->question << endl;
 		in.getline(p->answerfirst, 256, '\n');
-		cout << p->question << endl;
+		cout << p->answerfirst << endl;
 		in.getline(p->answersecond, 256, '\n');
 		cout << p->answersecond << endl;
 		in.getline(p->answerthirs, 256, '\n');
@@ -191,12 +193,15 @@ void program(){
 
 	server.Create(1760);
 
-	server.Listen();
+	server.Listen(5);
 
 	cout << "Nhap so nguoi choi: " << endl;
 	cin >> count_user;
 
-	clients = (CSocket *)malloc(count_user * sizeof(CSocket));
+	cout << "Nhap so cau hoi: " << endl;
+	cin >> count_question;
+
+	clients = new CSocket[count_user];
 
 	cout << "Waiting for client" << endl;
 	for (int i = 0; i < count_user;)
@@ -277,7 +282,7 @@ void program(){
 				clients[i].Receive(msg, length_msg);
 				msg[length_msg] = '\0';
 
-				if (strlwr(msg)[0] == questions.at(i)->answertrue)
+				if (msg[0] == questions.at(rand_question)->answertrue)
 				{
 					users[i]->socaudung++;
 				}
@@ -337,9 +342,9 @@ void program(){
 	{
 		clients[i].Close();
 	}
-	free(clients);
 	server.Close();
 
+	cin.getline(msg, 254);
 }
 
 int main()
