@@ -318,8 +318,7 @@ void program(){
 		}
 	}
 
-	temp = 500;
-	threadCheck.join();
+	threadCheck.detach();
 	
 	for (int i = 0; i < users_size_current; i++)
 	{
