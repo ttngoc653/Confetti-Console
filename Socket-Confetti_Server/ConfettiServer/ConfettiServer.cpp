@@ -163,10 +163,10 @@ void program(){
 
 	server.Listen(5);
 
-	cout << "Nhap so nguoi choi: " << endl;
+	cout << "Nhap so nguoi choi: ";
 	cin >> count_user;
 
-	cout << "Nhap so cau hoi: " << endl;
+	cout << "Nhap so cau hoi: ";
 	cin >> count_question;
 
 	clients = new CSocket[255];
@@ -253,10 +253,10 @@ void program(){
 				if (clients[k].Receive(&length_msg, sizeof(int))  // nhan ma so nguoi choi,  != 1 neu ng choi bi mat ket noi
 					!= -1 && clients[k].Receive(msg, 1) != -1) // nhan cau tra loi cua nguoi choi do, != 1 neu ng choi bi mat ket noi
 				{
-					cout << "Da nhan tra loi cua nguoi choi " << users.at(length_msg)->name << " la: " << msg << endl;
+					cout << "Da nhan tra loi cua nguoi choi " << users.at(length_msg)->name << " la: " << msg[0] << endl;
 
 					if (length_msg!=-1 // neu nguoi choi rac, tuc k ton tai
-						&&msg[0] == questions.at(rand_question)->answertrue) // va nguoi choi chon dung
+						&& msg[0] == questions.at(rand_question)->answertrue) // va nguoi choi chon dung
 					{
 						users[length_msg]->socaudung++;
 					}
