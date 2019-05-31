@@ -32,45 +32,48 @@ CSocket client;
 char str_ip[16];
 Question * p; char reply[] = "_____", answer;
 char msg[255];
-int length_msg = 0, number_question = 0;
+int length_msg = 0, number_question = 0, user_id = -1;
 int question_current = 0;
 bool replied = false;
 
 void xuatCauHoi() {
-	for (question_current = 0; question_current < number_question; question_current++)
+	while (question_current < number_question)
 	{
 		p = (Question *)malloc(sizeof(Question));
-		client.Receive(&length_msg, sizeof(int), 0);
+		if (1 != client.Receive(&question_current, sizeof(int), 0)) {
+			client.Receive(&length_msg, sizeof(int), 0);
 
-		if (question_current != 0 && replied)
-			cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
+			if (question_current != 0 && replied)
+				cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
 
-		client.Receive(p, length_msg, 0);
+			client.Receive(p, length_msg, 0);
 
-		cout << "Cau hoi thu " << question_current + 1 << ": " << endl;
-		cout << p->question << endl;
-		cout << "\ta. " << p->answerfirst << endl;
-		cout << "\tb. " << p->answersecond << endl;
-		cout << "\tc. " << p->answerthirs << endl;
-		cout << "\td. " << p->answerfouth << endl;
-		cout << "Bat dau tinh gio." << endl;
-		cout << "Cau tra loi cua ban (a, b, c hoac d): ";
+			cout << "Cau hoi thu " << question_current << ": " << endl;
+			cout << p->question << endl;
+			cout << "\ta. " << p->answerfirst << endl;
+			cout << "\tb. " << p->answersecond << endl;
+			cout << "\tc. " << p->answerthirs << endl;
+			cout << "\td. " << p->answerfouth << endl;
+			cout << "Bat dau tinh gio." << endl;
+			cout << "Cau tra loi cua ban (a, b, c hoac d): ";
 
-		replied = false;
+			replied = false;
 
-		Sleep(60000);
+			Sleep(60000);
 
-		if (!replied)
-		{
-			cout << endl << "Het thoi gian tra loi." << endl;
-			strcpy(reply, "e");
+			if (!replied)
+			{
+				cout << endl << "Het thoi gian tra loi." << endl;
+				strcpy(reply, "e");
+			}
+
+			answer = p->answertrue;
+
+			// gui ma nguoi choi hien tai
+			client.Send(&user_id, sizeof(int), 0);
+			//gui cau tra loi
+			client.Send(reply, 1, 0);
 		}
-
-		answer = p->answertrue;
-
-		length_msg = strlen(reply);
-		client.Send(&length_msg, sizeof(int), 0);
-		client.Send(reply, length_msg, 0);
 	}
 }
 
@@ -79,7 +82,7 @@ void guiCauTraLoi() {
 	{
 		cin >> reply;
 		replied = true;
-		cout << "Cho dap an cua nguoi cung choi!" << endl;
+		cout << "Cho nguoi cung choi tra loi!" << endl;
 	}
 }
 
@@ -105,16 +108,12 @@ void program() {
 		client.Send(&length_msg, sizeof(int), 0);
 		client.Send(msg, length_msg, 0);
 
-		// nhan so luong cau hoi hoac -1 neu bi trung
-		client.Receive(&length_msg, sizeof(int), 0);
-		client.Receive(msg, length_msg, 0);
-		msg[length_msg] = '\0';
-
-		cout << "Ket qua trung: " << msg << endl;
-
-		if (!strcmp("-1", msg) == 0)
+		// nhan so luong cau hoi can tra lop hoac -1 neu bi trung
+		client.Receive(&number_question, sizeof(int), 0);
+		if (number_question != -1)
 		{
-			number_question = atoi(msg);
+			client.Receive(&user_id, sizeof(int), 0);
+
 			cout << "Ban can tra loi " << number_question << " cau hoi." << endl;
 			cout << "Hien tai dang cho du nguoi moi choi duoc nhe." << endl;
 			break;
@@ -130,21 +129,22 @@ void program() {
 	thread showQuestion(xuatCauHoi);
 	thread inputReply(guiCauTraLoi);
 	showQuestion.join();
+	inputReply.detach();
 	
+	// nhan so nguoi choi co diem cao
 	client.Receive(&length_msg, sizeof(int));
 
 	cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
+
+	cout << "So cau hoi ma nguoi chien thang tra loi dung: " << length_msg<<endl;
 	
-	client.Receive(msg, length_msg);
-
-	int count_user_answer_most_true = atoi(msg);
-
-	cout << "Co " << msg << " nguoi choi tra loi dung nhieu cau nhat:" << endl;
-	for (int i = 0; i < count_user_answer_most_true; i++)
+	int max_user = 0;
+	// nhan so nguoi tra loi dung nhieu nhat
+	client.Receive(&max_user, sizeof(int));
+	
+	cout << "Co " << max_user << " nguoi choi tra loi dung nhieu cau nhat:" << endl;
+	for (int i = 0; i < max_user; i++)
 	{
-		client.Receive(&length_msg, sizeof(int));
-		client.Receive(msg, length_msg);
-		
 		client.Receive(&length_msg, sizeof(int));
 		client.Receive(msg, length_msg);
 		msg[length_msg] = '\0';

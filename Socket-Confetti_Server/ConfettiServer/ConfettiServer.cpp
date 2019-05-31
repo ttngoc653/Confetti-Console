@@ -37,6 +37,10 @@ struct Question
 
 CSocket server;
 CSocket * clients;
+
+std::vector<int> listclose;
+/*luu cac phan tu ma da dong*/
+
 vector<InfoUser *> users;
 vector<Question *> questions;
 int count_user = 0, count_question = 0, users_size_current = 0;
@@ -137,50 +141,10 @@ bool readQuestionFromFile()
 void checkConnect() {
 	while (temp != 500)
 	{
-		for (int i = 0; i < count_user; i++)
+		while (listclose.size()!=0)
 		{
-			if (clients[i] == NULL)
-			{
-				if (server.Accept(clients[i])) {
-					clients[i].Receive(&length_msg, sizeof(int), 0);
-					clients[i].Receive(msg, length_msg, 0);
-
-					msg[length_msg] = '\0';
-
-					cout << "Da nhan ten: " << msg;
-
-					temp = 1;
-					if (!checkEqualUser(msg))
-					{
-						cout << endl;
-						cout << "Nguoi choi thu " << i << " da ket noi" << endl;
-
-						clients[i];
-
-						InfoUser *info = (InfoUser *)malloc(sizeof(InfoUser));
-
-						info->name = (char *)malloc(length_msg * sizeof(int));
-
-						strcpy(info->name, msg);
-						info->socaudung = 0;
-						users.push_back(info);
-
-						clients[i].Send(&temp, sizeof(int), 0);
-						clients[i].Send("1", 1, 0);
-						users_size_current++;
-						i++;
-					}
-					else
-					{
-						cout << " bi trung ten" << endl;
-
-						clients[i].Send(&temp, sizeof(int), 0);
-						clients[i].Send("0", 1, 0);
-
-						clients[i].Close();
-					}
-				}
-			}
+			if (server.Accept(clients[listclose.at(0)]))
+				listclose.erase(listclose.begin());
 		}
 	}
 }
@@ -205,7 +169,7 @@ void program(){
 	cout << "Nhap so cau hoi: " << endl;
 	cin >> count_question;
 
-	clients = new CSocket[count_user];
+	clients = new CSocket[255];
 
 	cout << "Waiting for client" << endl;
 	for (int i = 0; i < count_user;)
@@ -232,27 +196,25 @@ void program(){
 			InfoUser *info=(InfoUser *)malloc(sizeof(InfoUser));
 
 			info->name = (char *)malloc(length_msg * sizeof(int));
-
+			
 			strcpy(info->name, msg);
 			info->socaudung = 0;
 			users.push_back(info);
 			
 			// gui so luong cau hoi
-			sprintf(msg, "%d", count_question);
-			temp = strlen(msg);
-			clients[i].Send(&temp, sizeof(int), 0);
-			clients[i].Send(msg, 1, 0);
+			clients[i].Send(&count_question, sizeof(int), 0);
+			// gui ma nguoi choi 
+			clients[i].Send(&i, sizeof(int), 0);
 			users_size_current++;
 			i++;
 		}
 		else
 		{
 			cout << " bi trung ten" << endl;
-			temp = 2;
+			temp = -1;
 
 			// gui ket qua trung ve (-1)
 			clients[i].Send(&temp, sizeof(int), 0);
-			clients[i].Send("-1", 1, 0);
 
 			clients[i].Close();
 		}
@@ -260,43 +222,64 @@ void program(){
 
 	thread threadCheck(checkConnect);
 
-	for (int i = 0; i < count_question; i++)
+	cout << "bat dau tro choi!!!" << endl;
+
+	for (int i = 1; i <= count_question; i++)
 	{
 		int rand_question = rand() % questions.size();
 		temp = sizeof(Question);
 
 		// gui cau hoi cho tat ca client con hoat dong
-		for (int i = 0; i < count_user; i++)
+		for (int k = 0; k < count_user; k++)
 		{
-			if (clients[i]!=NULL)
+			if (clients[i] != NULL)
 			{
+				// gui so cau hoi thu hien tai
+				clients[k].Send(&i, sizeof(int));
 				// gui cau hoi cho nguoi choi
-				clients[i].Send(&temp, sizeof(int));
-				clients[i].Send(questions.at(rand_question), temp);
+				clients[k].Send(&temp, sizeof(int));
+				clients[k].Send(questions.at(rand_question), temp);
 			}
 		}
 
+		Sleep(60000);
+
 		// nhan cau tra loi cua tat ca client
-		for (int i = 0; i < count_user; i++)
+		for (int k = 0; k < count_user; k++)
 		{
-			if (clients[i]!=NULL)
+			if (clients[k]!=NULL)
 			{
 				// nhan cau tra loi cua nguoi choi
-				clients[i].Receive(&length_msg, sizeof(int));
-				clients[i].Receive(msg, length_msg);
-				msg[length_msg] = '\0';
-
-				cout << "Da nhan tra loi cua client " << i + 1 << " la: " << msg << endl;
-
-				if (msg[0] == questions.at(rand_question)->answertrue)
+				if (clients[k].Receive(&length_msg, sizeof(int))  // nhan ma so nguoi choi,  != 1 neu ng choi bi mat ket noi
+					!= -1 && clients[k].Receive(msg, 1) != -1) // nhan cau tra loi cua nguoi choi do, != 1 neu ng choi bi mat ket noi
 				{
-					users[i]->socaudung++;
+					cout << "Da nhan tra loi cua nguoi choi " << users.at(length_msg)->name << " la: " << msg << endl;
+
+					if (length_msg!=-1 // neu nguoi choi rac, tuc k ton tai
+						&&msg[0] == questions.at(rand_question)->answertrue) // va nguoi choi chon dung
+					{
+						users[length_msg]->socaudung++;
+					}
+				}
+				else {
+					bool check = false;
+					for (int j = 0; j < listclose.size(); j++)
+					{
+						if (listclose.at(j)==i)
+						{
+							check = true;
+						}
+					}
+					if (!check)
+					{
+						listclose.push_back(i);
+					}
 				}
 			}
 		}
 	}
 
-	// tim so cau tra loi cao nhat cung nhu so nguoi choi tra loi coan hat
+	// tim so cau tra loi cao nhat cung nhu so nguoi choi tra loi
 	int maxpoint = 0, count_user_max_point = 0;
 	for (int i = 0; i < users.size(); i++)
 	{
@@ -316,20 +299,13 @@ void program(){
 	{
 		if (clients[i]!=NULL)
 		{
-			// gui so nguoi choi co diem cao nhat
-			sprintf(msg, "%d", count_user_max_point);
-			length_msg=strlen(msg);
-			clients[i].Send(&length_msg, sizeof(int));
-			clients[i].Send(msg, length_msg);
-
 			// gui diem cao nhat
-			sprintf(msg, "%d", maxpoint);
-			length_msg = strlen(msg);
-			clients[i].Send(&length_msg, sizeof(int));
-			clients[i].Send(msg, length_msg);
+			clients[i].Send(&maxpoint, sizeof(int));
+			
+			// gui so nguoi choi co diem cao nhat
+			clients[i].Send(&count_user_max_point, sizeof(int));
 
 			// gui danh sach ten nguoi choi co diem cao nhat
-
 			for (int i = 0; i < users.size(); i++)
 			{
 				if (users.at(i)->socaudung == users.at(maxpoint)->socaudung)
