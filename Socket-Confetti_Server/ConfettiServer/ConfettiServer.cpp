@@ -299,6 +299,7 @@ void program(){
 	{
 		if (clients[i]!=NULL)
 		{
+			maxpoint = users[maxpoint]->socaudung;
 			// gui diem cao nhat
 			clients[i].Send(&maxpoint, sizeof(int));
 			
