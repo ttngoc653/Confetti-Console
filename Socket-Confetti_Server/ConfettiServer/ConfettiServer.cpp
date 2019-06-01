@@ -141,7 +141,7 @@ bool readQuestionFromFile()
 void checkConnect() {
 	while (temp != 500)
 	{
-		while (listclose.size()!=0)
+		while (listclose.size() != 0)
 		{
 			if (server.Accept(clients[listclose.at(0)]))
 				listclose.erase(listclose.begin());
@@ -149,7 +149,7 @@ void checkConnect() {
 	}
 }
 
-void program(){
+void program() {
 	if (!readQuestionFromFile()) {
 		cout << "Ket thuc tro choi." << endl;
 		return;
@@ -184,7 +184,7 @@ void program(){
 		msg[length_msg] = '\0';
 
 		cout << "Da nhan ten: " << msg;
-		
+
 		temp = 1;
 		if (!checkEqualUser(msg))
 		{
@@ -192,15 +192,15 @@ void program(){
 			cout << "Nguoi choi thu " << i << " da ket noi" << endl;
 
 			clients[i];
-			
-			InfoUser *info=(InfoUser *)malloc(sizeof(InfoUser));
+
+			InfoUser *info = (InfoUser *)malloc(sizeof(InfoUser));
 
 			info->name = (char *)malloc(length_msg * sizeof(int));
-			
+
 			strcpy(info->name, msg);
 			info->socaudung = 0;
 			users.push_back(info);
-			
+
 			// gui so luong cau hoi
 			clients[i].Send(&count_question, sizeof(int), 0);
 			// gui ma nguoi choi 
@@ -247,25 +247,29 @@ void program(){
 		// nhan cau tra loi cua tat ca client
 		for (int k = 0; k < count_user; k++)
 		{
-			if (clients[k]!=NULL)
+			if (clients[k] != NULL)
 			{
 				// nhan cau tra loi cua nguoi choi
 				if (clients[k].Receive(&length_msg, sizeof(int))  // nhan ma so nguoi choi,  != 1 neu ng choi bi mat ket noi
 					!= -1 && clients[k].Receive(msg, 1) != -1) // nhan cau tra loi cua nguoi choi do, != 1 neu ng choi bi mat ket noi
 				{
-					cout << "Da nhan tra loi cua nguoi choi " << users.at(length_msg)->name << " la: " << msg[0] << endl;
+					if (msg[0] != 'e')
+						cout << "Da nhan tra loi cua nguoi choi " << users.at(length_msg)->name << " la: " << msg[0] << endl;
+					else {
+						cout << "Nguoi choi " << users.at(length_msg)->name << " khong tra loi cau hoi." << endl;
+					}
 
-					if (length_msg!=-1 // neu nguoi choi rac, tuc k ton tai
+					if (length_msg != -1 // neu nguoi choi rac, tuc k ton tai
 						&& msg[0] == questions.at(rand_question)->answertrue) // va nguoi choi chon dung
 					{
-						users[length_msg]->socaudung++;
+						users.at(length_msg)->socaudung++;
 					}
 				}
 				else {
 					bool check = false;
 					for (int j = 0; j < listclose.size(); j++)
 					{
-						if (listclose.at(j)==i)
+						if (listclose.at(j) == i)
 						{
 							check = true;
 						}
@@ -283,12 +287,12 @@ void program(){
 	int maxpoint = 0, count_user_max_point = 0;
 	for (int i = 0; i < users.size(); i++)
 	{
-		if (users[i]->socaudung>users[maxpoint]->socaudung)
+		if (users.at(i)->socaudung>maxpoint)
 		{
-			maxpoint = i;
+			maxpoint = users.at(i)->socaudung;
 			count_user_max_point = 1;
 		}
-		else if (users[i]->socaudung == users[maxpoint]->socaudung)
+		else if (users.at(i)->socaudung == maxpoint)
 		{
 			count_user_max_point++;
 		}
@@ -297,30 +301,31 @@ void program(){
 	// gui ket qua choi cho nguoi dung
 	for (int i = 0; i < count_user; i++)
 	{
-		if (clients[i]!=NULL)
+		if (clients[i] != NULL)
 		{
-			maxpoint = users[maxpoint]->socaudung;
 			// gui diem cao nhat
 			clients[i].Send(&maxpoint, sizeof(int));
-			
+
 			// gui so nguoi choi co diem cao nhat
 			clients[i].Send(&count_user_max_point, sizeof(int));
 
 			// gui danh sach ten nguoi choi co diem cao nhat
 			for (int i = 0; i < users.size(); i++)
 			{
-				if (users.at(i)->socaudung == users.at(maxpoint)->socaudung)
+				if (users.at(i)->socaudung == maxpoint)
 				{
-					length_msg = strlen(users[i]->name);
+					length_msg = strlen(users.at(i)->name);
 					clients[i].Send(&length_msg, sizeof(int));
-					clients[i].Send(users[i]->name, length_msg);
+					clients[i].Send(users.at(i)->name, length_msg);
 				}
 			}
 		}
 	}
 
 	threadCheck.detach();
-	
+
+	Sleep(2500);
+
 	for (int i = 0; i < users_size_current; i++)
 	{
 		clients[i].Close();
@@ -332,31 +337,31 @@ void program(){
 
 int main()
 {
-    int nRetCode = 0;
+	int nRetCode = 0;
 
-    HMODULE hModule = ::GetModuleHandle(nullptr);
+	HMODULE hModule = ::GetModuleHandle(nullptr);
 
-    if (hModule != nullptr)
-    {
-        // initialize MFC and print and error on failure
-        if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
-        {
-            // TODO: change error code to suit your needs
-            wprintf(L"Fatal Error: MFC initialization failed\n");
-            nRetCode = 1;
-        }
-        else
-        {
-            // TODO: code your application's behavior here.
+	if (hModule != nullptr)
+	{
+		// initialize MFC and print and error on failure
+		if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
+		{
+			// TODO: change error code to suit your needs
+			wprintf(L"Fatal Error: MFC initialization failed\n");
+			nRetCode = 1;
+		}
+		else
+		{
+			// TODO: code your application's behavior here.
 			program();
-        }
-    }
-    else
-    {
-        // TODO: change error code to suit your needs
-        wprintf(L"Fatal Error: GetModuleHandle failed\n");
-        nRetCode = 1;
-    }
+		}
+	}
+	else
+	{
+		// TODO: change error code to suit your needs
+		wprintf(L"Fatal Error: GetModuleHandle failed\n");
+		nRetCode = 1;
+	}
 
-    return nRetCode;
+	return nRetCode;
 }

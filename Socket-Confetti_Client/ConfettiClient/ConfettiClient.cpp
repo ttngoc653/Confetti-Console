@@ -33,7 +33,7 @@ char str_ip[16];
 Question * p; char reply[] = "_____", answer;
 char msg[255];
 int length_msg = 0, number_question = 0, user_id = -1;
-int question_current = 0;
+int question_current = 0, connected = 1;
 bool replied = false;
 
 void xuatCauHoi() {
@@ -41,12 +41,12 @@ void xuatCauHoi() {
 	{
 		p = (Question *)malloc(sizeof(Question));
 		if (1 != client.Receive(&question_current, sizeof(int), 0)) {
-			client.Receive(&length_msg, sizeof(int), 0);
+			connected = client.Receive(&length_msg, sizeof(int), 0);
 
 			if (question_current != 0 && replied)
 				cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
 
-			client.Receive(p, length_msg, 0);
+			connected = client.Receive(p, length_msg, 0);
 
 			cout << "Cau hoi thu " << question_current << ": " << endl;
 			cout << p->question << endl;
@@ -70,9 +70,9 @@ void xuatCauHoi() {
 			answer = p->answertrue;
 
 			// gui ma nguoi choi hien tai
-			client.Send(&user_id, sizeof(int), 0);
+			connected = client.Send(&user_id, sizeof(int));
 			//gui cau tra loi
-			client.Send(reply, 1, 0);
+			connected = client.Send(reply, 1);
 		}
 	}
 }
@@ -86,11 +86,21 @@ void guiCauTraLoi() {
 	}
 }
 
+void checkConnected() {
+	while (true)
+	{
+		if (connected == -1)
+			client.Connect(CA2W(str_ip), 1760);
+		{
+		}
+	}
+}
+
 void program() {
 	AfxSocketInit(NULL);
-	
+
 	cout << "Please input IP address of server: ";
-	cin.getline(str_ip,254);
+	cin.getline(str_ip, 254);
 
 	cout << "Nhap ten nguoi choi: ";
 	while (true)
@@ -103,16 +113,16 @@ void program() {
 		cin.getline(msg, 254);
 
 		length_msg = strlen(msg);
-		
+
 		// gui ten nguoi dung
-		client.Send(&length_msg, sizeof(int), 0);
-		client.Send(msg, length_msg, 0);
+		connected = client.Send(&length_msg, sizeof(int), 0);
+		connected = client.Send(msg, length_msg, 0);
 
 		// nhan so luong cau hoi can tra lop hoac -1 neu bi trung
-		client.Receive(&number_question, sizeof(int), 0);
+		connected = client.Receive(&number_question, sizeof(int), 0);
 		if (number_question != -1)
 		{
-			client.Receive(&user_id, sizeof(int), 0);
+			connected = client.Receive(&user_id, sizeof(int), 0);
 
 			cout << "Ban can tra loi " << number_question << " cau hoi." << endl;
 			cout << "Hien tai dang cho du nguoi moi choi duoc nhe." << endl;
@@ -124,29 +134,32 @@ void program() {
 			client.Close();
 		}
 	}
-
+	// luong chay check ket noi lien tuc nho bien check connect
+	thread checkConnect(checkConnected);
 	// nhan cau hoi va tra loi cau hoi
 	thread showQuestion(xuatCauHoi);
 	thread inputReply(guiCauTraLoi);
 	showQuestion.join();
 	inputReply.detach();
-	
+
 	// nhan so nguoi choi co diem cao
-	client.Receive(&length_msg, sizeof(int));
+	connected = client.Receive(&length_msg, sizeof(int));
 
 	cout << "Ban da tra loi " << ((answer != reply[0]) ? "sai" : "dung") << endl;
 
-	cout << "So cau hoi ma nguoi chien thang tra loi dung: " << length_msg<<endl;
-	
+	cout << "So cau hoi ma nguoi chien thang tra loi dung: " << length_msg << endl;
+
 	int max_user = 0;
 	// nhan so nguoi tra loi dung nhieu nhat
-	client.Receive(&max_user, sizeof(int));
-	
+	connected = client.Receive(&max_user, sizeof(int));
+
 	cout << "Co " << max_user << " nguoi choi tra loi dung nhieu cau nhat:" << endl;
 	for (int i = 0; i < max_user; i++)
 	{
-		client.Receive(&length_msg, sizeof(int));
-		client.Receive(msg, length_msg);
+		if (client.Receive(&length_msg, sizeof(int)) == -1)
+			break;
+		if (client.Receive(msg, length_msg) == -1)
+			break;
 		msg[length_msg] = '\0';
 
 		cout << "\t" << msg << endl;
@@ -156,36 +169,37 @@ void program() {
 
 	client.Close();
 
+	checkConnect.detach();
 	cin.getline(msg, 254);
 }
 
 int main()
 {
-    int nRetCode = 0;
+	int nRetCode = 0;
 
-    HMODULE hModule = ::GetModuleHandle(nullptr);
+	HMODULE hModule = ::GetModuleHandle(nullptr);
 
-    if (hModule != nullptr)
-    {
-        // initialize MFC and print and error on failure
-        if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
-        {
-            // TODO: change error code to suit your needs
-            wprintf(L"Fatal Error: MFC initialization failed\n");
-            nRetCode = 1;
-        }
-        else
-        {
-            // TODO: code your application's behavior here.
+	if (hModule != nullptr)
+	{
+		// initialize MFC and print and error on failure
+		if (!AfxWinInit(hModule, nullptr, ::GetCommandLine(), 0))
+		{
+			// TODO: change error code to suit your needs
+			wprintf(L"Fatal Error: MFC initialization failed\n");
+			nRetCode = 1;
+		}
+		else
+		{
+			// TODO: code your application's behavior here.
 			program();
-        }
-    }
-    else
-    {
-        // TODO: change error code to suit your needs
-        wprintf(L"Fatal Error: GetModuleHandle failed\n");
-        nRetCode = 1;
-    }
+		}
+	}
+	else
+	{
+		// TODO: change error code to suit your needs
+		wprintf(L"Fatal Error: GetModuleHandle failed\n");
+		nRetCode = 1;
+	}
 
-    return nRetCode;
+	return nRetCode;
 }
