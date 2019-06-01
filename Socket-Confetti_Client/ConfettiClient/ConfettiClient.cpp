@@ -90,6 +90,7 @@ void checkConnected() {
 	while (true)
 	{
 		if (connected == -1)
+			cout << "Da bi mat ket  noi. Dang cho phan hoi cau server." << endl;
 			client.Connect(CA2W(str_ip), 1760);
 		{
 		}
